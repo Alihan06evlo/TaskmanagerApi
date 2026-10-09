@@ -1,0 +1,32 @@
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8082:8082"
+    environment:
+      DATABASE_URL: postgres://taskmanager:taskmanager@db:5432/taskmanager?sslmode=disable&connect_timeout=10
+    volumes:
+      - ./configs/apiserver.toml:/app/configs/apiserver.toml:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager
+      POSTGRES_DB: taskmanager
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanager -d taskmanager"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
